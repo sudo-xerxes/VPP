@@ -7,6 +7,7 @@
 #include "ui/UIManager.h"
 #include "ui/Splash.h"
 #include "modules/LedModule/LedModule.h"
+#include "modules/RadioModule/RadioModule.h"
 #include "varsys_config.h"
 #include <Wire.h>
 #include <WiFi.h>
@@ -32,6 +33,20 @@ static bool bqRead16(uint8_t reg, uint16_t& out) {
     uint8_t hi = Wire.read();
     out = (uint16_t)(hi << 8) | lo;
     return true;
+}
+
+// Грубая оценка заряда Li-ion 1S по напряжению — запасной вариант, если
+// топливомер без залитого профиля «застревает» на 100%.
+static int socFromMv(uint16_t mv) {
+    static const uint16_t V[] = {3300,3600,3700,3750,3800,3850,3900,3950,4000,4100,4200};
+    static const uint8_t  P[] = {   0,   8,  20,  35,  50,  62,  72,  80,  88,  96, 100};
+    const int n = sizeof(P) / sizeof(P[0]);
+    if (mv <= V[0])   return 0;
+    if (mv >= V[n-1]) return 100;
+    for (int i = 1; i < n; ++i)
+        if (mv < V[i])
+            return P[i-1] + (int)(mv - V[i-1]) * (P[i] - P[i-1]) / (V[i] - V[i-1]);
+    return 100;
 }
 
 bool PowerModule::init() {
@@ -81,6 +96,11 @@ void PowerModule::pollBattery() {
         _mv  = mv;
         _ma  = (int16_t)cur;              // знаковый: >0 заряд, <0 разряд
         _charging = (_ma > 0);            // ток в плату = заряд
+        // Топливомер без залитого профиля часто «застревает» на 100%. Если
+        // напряжение это явно не подтверждает и мы не заряжаемся — берём оценку
+        // по напряжению. Полноценно чинится заливкой профиля BQ27220 на железе.
+        if (mv >= 3000 && mv < 4050 && soc >= 100 && !_charging)
+            _pct = socFromMv(mv);
         EventBus::publish(EventType::POWER_CHANGED, _pct);
     } else {
         _pct = -1;   // топливомер недоступен
@@ -149,6 +169,7 @@ void PowerModule::lightSleep() {
     LOGI(TAG, "Light sleep (wake: BACK)");
     UIManager::instance().display().setBrightness(0);
     LedModule::instance().off();
+    RadioModule::instance().sleep();         // CC1101 в power-down (экономия)
     _screenOff = true;
     delay(60);
     // Ждём отпускания кнопки, иначе тем же нажатием сразу проснёмся.
@@ -160,14 +181,20 @@ void PowerModule::lightSleep() {
     esp_sleep_enable_gpio_wakeup();
     esp_light_sleep_start();                 // блокирует до нажатия BACK
     gpio_wakeup_disable((gpio_num_t)PIN_BTN_BACK);
+    RadioModule::instance().idle();          // вернуть CC1101 из power-down в IDLE
 
+    // «Съедаем» разбудившее нажатие и детерминированно возвращаемся в меню —
+    // чтобы не зависеть от того, поймает ли InputModule фронт кнопки после сна.
+    while (digitalRead(PIN_BTN_BACK) == LOW) delay(5);
     noteActivity();                          // wake(): яркость/частота + заставка
+    UIManager::instance().setScreen("Home");
 }
 
 void PowerModule::deepSleep() {
     LOGI(TAG, "Deep sleep (wake: BACK -> reboot)");
     UIManager::instance().display().setBrightness(0);
     LedModule::instance().off();
+    RadioModule::instance().sleep();         // CC1101 в power-down (при удержании питания)
     delay(60);
     while (digitalRead(PIN_BTN_BACK) == LOW) delay(10);
 
@@ -190,12 +217,14 @@ bool PowerModule::canAutoSleep() const {
     if (_autoSleepInhibited) return false;              // модуль явно запретил
     if (_charging) return false;                        // на внешнем питании (USB)
     if (WiFi.getMode() != WIFI_MODE_NULL) return false; // AP/STA/скан/сниффер/деаутх
+    if (RadioModule::instance().listening()) return false;  // идёт приём CC1101
     return true;
 }
 
 void PowerModule::autoLightSleep() {
     LOGD(TAG, "Auto light sleep");
     LedModule::instance().off();
+    RadioModule::instance().sleep();                    // CC1101 в power-down (экономия)
 
     // Пробуждение по кнопке энкодера (GPIO0) и Назад (GPIO6), низкий уровень.
     // Light sleep не делает сброс, поэтому BOOT-strap на GPIO0 здесь не мешает.
@@ -205,6 +234,7 @@ void PowerModule::autoLightSleep() {
     esp_light_sleep_start();                            // блокирует до нажатия
     gpio_wakeup_disable((gpio_num_t)PIN_ENCODER_BTN);
     gpio_wakeup_disable((gpio_num_t)PIN_BTN_BACK);
+    RadioModule::instance().idle();                     // вернуть CC1101 в IDLE
 
     // «Съедаем» разбудившее нажатие, чтобы оно не сработало как выбор пункта.
     while (digitalRead(PIN_ENCODER_BTN) == LOW || digitalRead(PIN_BTN_BACK) == LOW)

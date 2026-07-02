@@ -1,5 +1,6 @@
 #include "WebUiModule.h"
 #include "core/Logger.h"
+#include "core/Settings.h"
 #include "varsys_config.h"
 #include "modules/RadioModule/RadioModule.h"
 #include "modules/PowerModule/PowerModule.h"
@@ -9,9 +10,32 @@
 #include <Update.h>
 
 static const char* TAG = "WebUi";
-static const char* AP_PASS = "varsys1234";
 
 WebUiModule* WebUiModule::_self = nullptr;
+
+// Экранирование для вставки в HTML (CWE-79).
+static String htmlEscape(const String& s) {
+    String o; o.reserve(s.length() + 8);
+    for (size_t i = 0; i < s.length(); ++i) {
+        char c = s[i];
+        switch (c) {
+            case '&': o += "&amp;";  break;
+            case '<': o += "&lt;";   break;
+            case '>': o += "&gt;";   break;
+            case '"': o += "&quot;"; break;
+            case '\'':o += "&#39;";  break;
+            default:  o += c;
+        }
+    }
+    return o;
+}
+
+// Плоское имя файла без разделителей/переходов вверх (защита от path-traversal, CWE-22).
+static bool safeLeaf(const String& n) {
+    if (n.isEmpty() || n.length() > 64) return false;
+    if (n.indexOf('/') >= 0 || n.indexOf('\\') >= 0 || n.indexOf("..") >= 0) return false;
+    return true;
+}
 
 bool WebUiModule::init() {
     _self = this;
@@ -28,7 +52,7 @@ void WebUiModule::activate() {
     _ssid = ssid;
 
     WiFi.mode(WIFI_AP);
-    WiFi.softAP(_ssid.c_str(), AP_PASS);
+    WiFi.softAP(_ssid.c_str(), Settings::instance().webPassword().c_str());
     _ip = WiFi.softAPIP().toString();
 
     routes();
@@ -58,19 +82,23 @@ void WebUiModule::routes() {
     // OTA-обновление прошивки (Update.h, разделы app0/app1).
     _server.on("/update", HTTP_POST,
         [this] {
-            _server.send(200, "text/html",
-                         Update.hasError() ? "update failed" : "OK, rebooting");
-            delay(400);
-            ESP.restart();
+            bool ok = !Update.hasError();
+            _server.send(200, "text/html", ok ? "OK, rebooting" : "update failed");
+            if (ok) { delay(400); ESP.restart(); }   // не грузимся в битую прошивку
         },
         [this] {
             HTTPUpload& up = _server.upload();
             if (up.status == UPLOAD_FILE_START) {
-                Update.begin(UPDATE_SIZE_UNKNOWN);
+                LOGI(TAG, "OTA start: %s", up.filename.c_str());
+                if (!Update.begin(UPDATE_SIZE_UNKNOWN))
+                    LOGE(TAG, "OTA begin failed: %s", Update.errorString());
             } else if (up.status == UPLOAD_FILE_WRITE) {
-                Update.write(up.buf, up.currentSize);
+                // Короткая запись = ошибка флеша; фиксируем (hasError не даст ребут).
+                if (Update.write(up.buf, up.currentSize) != up.currentSize)
+                    LOGE(TAG, "OTA write failed: %s", Update.errorString());
             } else if (up.status == UPLOAD_FILE_END) {
-                Update.end(true);
+                if (Update.end(true)) LOGI(TAG, "OTA done: %u B", (unsigned)up.totalSize);
+                else                  LOGE(TAG, "OTA end failed: %s", Update.errorString());
             }
         });
 }
@@ -97,8 +125,10 @@ void WebUiModule::handleSignals() {
     h += "<h2>Signals</h2>";
     auto names = StorageModule::instance().listSignals();
     if (names.empty()) h += "<p>empty</p>";
-    for (auto& n : names)
-        h += "<a href='/dl?f=" + n + "'>" + n + "</a>";
+    for (auto& n : names) {
+        String e = htmlEscape(n);
+        h += "<a href='/dl?f=" + e + "'>" + e + "</a>";
+    }
     h += "<p><a href='/'>&lsaquo; back</a></p>";
     _server.send(200, "text/html", h);
 }
@@ -106,6 +136,7 @@ void WebUiModule::handleSignals() {
 void WebUiModule::handleDownload() {
     String f = _server.arg("f");
     if (f.isEmpty()) { _server.send(400, "text/plain", "no file"); return; }
+    if (!safeLeaf(f)) { _server.send(400, "text/plain", "bad name"); return; }  // CWE-22
     fs::FS* fs = StorageModule::instance().fs();
     if (!fs) { _server.send(500, "text/plain", "no fs"); return; }
 

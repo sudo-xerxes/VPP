@@ -13,6 +13,7 @@ static constexpr uint8_t SCAL  = 0x33;
 static constexpr uint8_t SRX   = 0x34;
 static constexpr uint8_t STX   = 0x35;
 static constexpr uint8_t SIDLE = 0x36;
+static constexpr uint8_t SPWD  = 0x39;   // power-down (пробуждается по CS)
 
 // --- Регистры ---
 static constexpr uint8_t REG_IOCFG2   = 0x00;
@@ -192,6 +193,12 @@ void CC1101::enterRx() {
 
 void CC1101::enterIdle() {
     strobe(SIDLE);
+}
+
+void CC1101::enterSleep() {
+    if (!_present) return;
+    strobe(SIDLE);   // из активных состояний в IDLE перед power-down
+    strobe(SPWD);    // SPWD корректен только из IDLE
 }
 
 // Канал RMT для GDO0 (один на приём и передачу, переконфигурируется).

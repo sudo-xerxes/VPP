@@ -2,6 +2,7 @@
 #include "EventBus.h"
 #include "Logger.h"
 #include "varsys_config.h"
+#include <esp_random.h>
 
 static const char* TAG = "Settings";
 static const char* NS  = "varsys";   // пространство имён NVS
@@ -19,6 +20,7 @@ static const char* K_SLEEP  = "sleep_sec";
 static const char* K_KBLAY  = "kb_layout";
 static const char* K_LEDON  = "led_on";
 static const char* K_LEDBR  = "led_br";
+static const char* K_WEBPW  = "web_pw";
 
 Settings& Settings::instance() {
     static Settings s;
@@ -40,6 +42,7 @@ void Settings::begin() {
     _kbLayout   = _prefs.getUChar(K_KBLAY, 0);   // 0 = US
     _ledOn      = _prefs.getBool(K_LEDON, true);
     _ledBright  = _prefs.getUChar(K_LEDBR, 80);
+    _webPass    = _prefs.getString(K_WEBPW, "");
 
     LOGI(TAG, "Loaded: bright=%u rot=%u lang=%s sound=%d freq=%lukHz",
          _brightness, _rotation, _lang == Lang::EN ? "EN" : "RU",
@@ -94,6 +97,20 @@ void Settings::setDarkTheme(bool v) {
     _prefs.putBool(K_DARK, v);
     EventBus::publish(EventType::SETTINGS_CHANGED);
     EventBus::publishDeferred(EventType::UI_REBUILD);   // применить тему
+}
+
+const String& Settings::webPassword() {
+    if (_webPass.length() < 8) {
+        // Без похожих символов (0/O, 1/l/I) — легче списать с экрана.
+        static const char CS[] = "abcdefghjkmnpqrstuvwxyz23456789";
+        char buf[11];
+        for (int i = 0; i < 10; ++i) buf[i] = CS[esp_random() % (sizeof(CS) - 1)];
+        buf[10] = 0;
+        _webPass = buf;
+        _prefs.putString(K_WEBPW, _webPass);
+        LOGI(TAG, "Generated WebUI AP password");
+    }
+    return _webPass;
 }
 
 void Settings::factoryReset() {

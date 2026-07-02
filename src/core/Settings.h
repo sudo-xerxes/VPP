@@ -63,6 +63,10 @@ public:
     uint8_t  ledBrightness() const { return _ledBright; }
     void     setLedBrightness(uint8_t v);
 
+    // Пароль веб-интерфейса (WPA2 точки доступа). Генерируется случайно при
+    // первом обращении и хранится в NVS — вместо публичного хардкода (CWE-798).
+    const String& webPassword();
+
     void     factoryReset();           // очистить NVS и перезагрузиться
 
 private:
@@ -84,4 +88,5 @@ private:
     uint8_t  _kbLayout;
     bool     _ledOn;
     uint8_t  _ledBright;
+    String   _webPass;
 };

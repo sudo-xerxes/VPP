@@ -2,6 +2,7 @@
 #include "ui/UITheme.h"
 #include "ui/i18n.h"
 #include "ui/Notify.h"
+#include "core/Settings.h"
 #include "modules/WebUiModule/WebUiModule.h"
 
 using namespace ui;
@@ -49,8 +50,10 @@ void WebUiScreen::refresh() {
     lv_obj_t* lb = (lv_obj_t*)lv_obj_get_user_data(_btn);
     lv_label_set_text(lb, w.active() ? tr(STR_STOP) : tr(STR_START));
     if (w.active())
-        lv_label_set_text_fmt(_info, "%s\nhttp://%s  (pass: varsys1234)",
-                              w.ssid().c_str(), w.ip().c_str());
+        lv_label_set_text_fmt(_info, "%s  pass: %s\nhttp://%s",
+                              w.ssid().c_str(),
+                              Settings::instance().webPassword().c_str(),
+                              w.ip().c_str());
     else
         lv_label_set_text(_info, "AP + http");
 }

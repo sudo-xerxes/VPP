@@ -46,8 +46,9 @@ void RadioModule::cycleFreqPreset() {
     setFreqKhz(PRESETS[idx]);
 }
 
-void RadioModule::listen() { _cc.enterRx(); }
-void RadioModule::idle()   { _cc.enterIdle(); }
+void RadioModule::listen() { _cc.enterRx();    _listening = true;  }
+void RadioModule::idle()   { _cc.enterIdle();  _listening = false; }
+void RadioModule::sleep()  { _cc.enterSleep(); _listening = false; }
 
 uint32_t RadioModule::scan() {
     uint32_t bestFreq = _cc.frequencyKhz();

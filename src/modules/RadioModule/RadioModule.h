@@ -30,6 +30,8 @@ public:
 
     void listen();                     // включить приём (для живого RSSI)
     void idle();
+    void sleep();                      // CC1101 в power-down (перед сном МК)
+    bool listening() const { return _listening; }   // идёт непрерывный приём
 
     uint32_t scan();                   // свип пресетов, вернуть лучшую частоту
 
@@ -67,6 +69,7 @@ private:
     hal::CC1101 _cc;
     std::vector<uint16_t> _lastCapture;
     bool _startHigh = true;
+    bool _listening = false;   // CC1101 в RX (живой RSSI на экране Sub-GHz)
 
     // Перебор: окно последних кодов (proto<<16 | code) и состояние прерывания.
     bool runBruteProto(int idx, int repeats);    // true, если прервано
