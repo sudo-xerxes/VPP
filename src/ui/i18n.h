@@ -63,6 +63,10 @@ enum StrId : int {
     STR_CHARGING,       // идёт зарядка
     STR_REQUIRES,       // «Требуется» (нет нужного железа)
     STR_CONNECT_TO,     // «подключите к» (порт)
+    STR_SLEEP,          // «Сон» (пункт меню / заголовок)
+    STR_LIGHT_SLEEP,    // «Лёгкий сон» (light sleep)
+    STR_DEEP_SLEEP,     // «Глубокий сон» (deep sleep)
+    STR_SLEEP_HINT,     // подсказка про пробуждение
     STR_COUNT
 };
 

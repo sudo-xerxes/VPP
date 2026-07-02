@@ -16,7 +16,7 @@ public:
     void onEvent(const Event& e) override;
 
 private:
-    static constexpr int kMax = 16;
+    static constexpr int kMax = 18;
 
     struct Tile {
         lv_obj_t*   icon   = nullptr;

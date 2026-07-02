@@ -55,6 +55,10 @@ static const char* const RU[STR_COUNT] = {
     "Зарядка",      // STR_CHARGING
     "Требуется",    // STR_REQUIRES
     "подключите к", // STR_CONNECT_TO
+    "Сон",          // STR_SLEEP
+    "Лёгкий сон",   // STR_LIGHT_SLEEP
+    "Глубокий сон", // STR_DEEP_SLEEP
+    "Пробуждение — кнопкой Назад", // STR_SLEEP_HINT
 };
 
 static const char* const EN[STR_COUNT] = {
@@ -110,6 +114,10 @@ static const char* const EN[STR_COUNT] = {
     "Charging",     // STR_CHARGING
     "Requires",     // STR_REQUIRES
     "connect to",   // STR_CONNECT_TO
+    "Sleep",        // STR_SLEEP
+    "Light sleep",  // STR_LIGHT_SLEEP
+    "Deep sleep",   // STR_DEEP_SLEEP
+    "Wake with the Back button", // STR_SLEEP_HINT
 };
 
 const char* tr(StrId id) {

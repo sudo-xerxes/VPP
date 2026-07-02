@@ -6,8 +6,13 @@
 #include "hal/board_pins.h"
 #include "ui/UIManager.h"
 #include "ui/Splash.h"
+#include "modules/LedModule/LedModule.h"
 #include "varsys_config.h"
 #include <Wire.h>
+#include <WiFi.h>
+#include <esp_sleep.h>
+#include <driver/gpio.h>
+#include <driver/rtc_io.h>
 
 static const char* TAG = "Power";
 
@@ -34,6 +39,15 @@ bool PowerModule::init() {
 
     pinMode(PIN_POWER_ON, OUTPUT);
     digitalWrite(PIN_POWER_ON, HIGH);   // удержание питания платы
+    // Если проснулись из deep sleep — пин был зафиксирован (hold). Снимаем latch
+    // ТОЛЬКО после того, как снова гоним HIGH: иначе пин на миг просядет в LOW
+    // и плата обесточится вместо продолжения работы.
+    gpio_hold_dis((gpio_num_t)PIN_POWER_ON);
+    gpio_deep_sleep_hold_dis();
+
+    esp_sleep_wakeup_cause_t wc = esp_sleep_get_wakeup_cause();
+    if (wc == ESP_SLEEP_WAKEUP_GPIO || wc == ESP_SLEEP_WAKEUP_EXT1)
+        LOGI(TAG, "Woke from deep sleep (button)");
 
     Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL);
 
@@ -113,6 +127,11 @@ void PowerModule::update(uint32_t now) {
         setCpuFrequencyMhz(VARSYS_CPU_MHZ_IDLE);
         _lowPower = true;
         LOGD(TAG, "Screen off (idle)");
+#if VARSYS_AUTO_LIGHT_SLEEP
+        // На батарее и без фоновой радио-активности — засыпаем по-настоящему
+        // (блокирует до нажатия кнопки; иначе просто держим погашенный экран).
+        if (canAutoSleep()) autoLightSleep();
+#endif
     } else if (!_dimmed && idle > dimMs) {
         UIManager::instance().display().setBrightness(VARSYS_DIM_BRIGHTNESS);
         _dimmed = true;
@@ -124,4 +143,71 @@ void PowerModule::powerOff() {
     LOGI(TAG, "Powering off");
     delay(50);
     digitalWrite(PIN_POWER_ON, LOW);   // отпускаем линию питания
+}
+
+void PowerModule::lightSleep() {
+    LOGI(TAG, "Light sleep (wake: BACK)");
+    UIManager::instance().display().setBrightness(0);
+    LedModule::instance().off();
+    _screenOff = true;
+    delay(60);
+    // Ждём отпускания кнопки, иначе тем же нажатием сразу проснёмся.
+    while (digitalRead(PIN_BTN_BACK) == LOW) delay(10);
+
+    // Пробуждение по низкому уровню на кнопке НАЗАД (GPIO6). Энкодер (GPIO0) не
+    // берём: это BOOT-strap. Light sleep поддерживает GPIO-wake на любом пине.
+    gpio_wakeup_enable((gpio_num_t)PIN_BTN_BACK, GPIO_INTR_LOW_LEVEL);
+    esp_sleep_enable_gpio_wakeup();
+    esp_light_sleep_start();                 // блокирует до нажатия BACK
+    gpio_wakeup_disable((gpio_num_t)PIN_BTN_BACK);
+
+    noteActivity();                          // wake(): яркость/частота + заставка
+}
+
+void PowerModule::deepSleep() {
+    LOGI(TAG, "Deep sleep (wake: BACK -> reboot)");
+    UIManager::instance().display().setBrightness(0);
+    LedModule::instance().off();
+    delay(60);
+    while (digitalRead(PIN_BTN_BACK) == LOW) delay(10);
+
+    // Удерживаем линию питания платы во сне (иначе deep sleep = полное отключение,
+    // из которого не проснуться по кнопке).
+    gpio_hold_en((gpio_num_t)PIN_POWER_ON);
+    gpio_deep_sleep_hold_en();
+
+    // Пробуждение по кнопке НАЗАД (GPIO6, RTC-capable, активный LOW). На S3 GPIO
+    // deep-sleep-wake недоступен (нет SOC_GPIO_SUPPORT_DEEPSLEEP_WAKEUP), поэтому
+    // используем EXT1 (ANY_LOW). Подтяжку держим на время сна, чтобы линия не
+    // «плавала» и ложно не будила.
+    rtc_gpio_pullup_en((gpio_num_t)PIN_BTN_BACK);
+    rtc_gpio_pulldown_dis((gpio_num_t)PIN_BTN_BACK);
+    esp_sleep_enable_ext1_wakeup(1ULL << PIN_BTN_BACK, ESP_EXT1_WAKEUP_ANY_LOW);
+    esp_deep_sleep_start();                  // не возвращается; пробуждение = сброс
+}
+
+bool PowerModule::canAutoSleep() const {
+    if (_autoSleepInhibited) return false;              // модуль явно запретил
+    if (_charging) return false;                        // на внешнем питании (USB)
+    if (WiFi.getMode() != WIFI_MODE_NULL) return false; // AP/STA/скан/сниффер/деаутх
+    return true;
+}
+
+void PowerModule::autoLightSleep() {
+    LOGD(TAG, "Auto light sleep");
+    LedModule::instance().off();
+
+    // Пробуждение по кнопке энкодера (GPIO0) и Назад (GPIO6), низкий уровень.
+    // Light sleep не делает сброс, поэтому BOOT-strap на GPIO0 здесь не мешает.
+    gpio_wakeup_enable((gpio_num_t)PIN_ENCODER_BTN, GPIO_INTR_LOW_LEVEL);
+    gpio_wakeup_enable((gpio_num_t)PIN_BTN_BACK,    GPIO_INTR_LOW_LEVEL);
+    esp_sleep_enable_gpio_wakeup();
+    esp_light_sleep_start();                            // блокирует до нажатия
+    gpio_wakeup_disable((gpio_num_t)PIN_ENCODER_BTN);
+    gpio_wakeup_disable((gpio_num_t)PIN_BTN_BACK);
+
+    // «Съедаем» разбудившее нажатие, чтобы оно не сработало как выбор пункта.
+    while (digitalRead(PIN_ENCODER_BTN) == LOW || digitalRead(PIN_BTN_BACK) == LOW)
+        delay(5);
+    noteActivity();                                    // wake(): яркость/частота + заставка
 }

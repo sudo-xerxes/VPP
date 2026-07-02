@@ -27,10 +27,24 @@ public:
     // Корректное выключение устройства (отпускает линию питания).
     void powerOff();
 
+    // Лёгкий сон: CPU/периферия останавливаются, RAM сохраняется, пробуждение
+    // по кнопке НАЗАД возвращает выполнение сюда же (мгновенно, без перезагрузки).
+    void lightSleep();
+
+    // Глубокий сон: всё выключено кроме RTC; пробуждение по кнопке НАЗАД = полный
+    // сброс (setup() запускается заново). Питание платы удерживается на время сна.
+    void deepSleep();
+
+    // Запрет авто-light-sleep на время фоновой задачи, которую сон бы прервал
+    // (напр. непрерывный приём радио). WiFi-активность учитывается автоматически.
+    void setAutoSleepInhibited(bool v) { _autoSleepInhibited = v; }
+
 private:
     void pollBattery();
     void noteActivity();
     void wake();
+    bool canAutoSleep() const;   // безопасно ли сейчас засыпать (батарея/радио)
+    void autoLightSleep();       // авто-light-sleep при погашенном экране
 
     static PowerModule* _self;
 
@@ -43,4 +57,5 @@ private:
     bool     _dimmed   = false;
     bool     _screenOff = false;
     bool     _lowPower = false;   // CPU понижен до VARSYS_CPU_MHZ_IDLE
+    bool     _autoSleepInhibited = false;
 };

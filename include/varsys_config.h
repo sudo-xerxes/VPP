@@ -29,6 +29,7 @@
 #define VARSYS_DIM_BRIGHTNESS   30      // Яркость в затемнённом режиме (0..255)
 #define VARSYS_CPU_MHZ_NORMAL   240     // Рабочая частота CPU
 #define VARSYS_CPU_MHZ_IDLE     80      // Частота CPU при погашенном экране (мин. для радио)
+#define VARSYS_AUTO_LIGHT_SLEEP 1       // Авто light sleep при погашенном экране (0 = только гашение)
 
 // --- Ввод (энкодер + кнопка) ---
 #define VARSYS_ENCODER_REVERSED 0       // 1 — инвертировать направление вращения

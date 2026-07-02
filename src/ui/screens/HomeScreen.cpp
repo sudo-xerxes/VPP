@@ -65,6 +65,7 @@ void HomeScreen::onCreate(lv_obj_t* parent) {
     addTile(ICON_SCAN,      lv_color_hex(0x30B0C7), "Wardrive",       "Wardrive");
     addTile(ICON_FOLDER,    lv_color_hex(0x30D158), tr(STR_FILES),    "Files");
     addTile(ICON_SETTINGS,  lv_color_hex(0x8E8E93), tr(STR_SETTINGS), "Settings");
+    addTile(ICON_MOON,      lv_color_hex(0x5E5CE6), tr(STR_SLEEP),    "Sleep");
     if (Settings::instance().expert())
         addTile(ICON_EXPERT, lv_color_hex(0xFF453A), tr(STR_EXPERT),  "Expert");
 
@@ -116,6 +117,7 @@ void HomeScreen::updateLed() {
 void HomeScreen::onShow() {
     lv_obj_update_layout(_root);
     if (_selected >= _count) _selected = 0;
+    _ledTile = -1;                    // форсируем перезапись LED (в т.ч. после сна)
     lv_obj_scroll_to_view(_tiles[_selected].icon, LV_ANIM_OFF);
     applyFocus();
 }
