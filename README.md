@@ -8,7 +8,7 @@ a Flipper‑class multitool with a clean, phone‑like UI.
 > ⚠️ For **authorized testing and education only**. Read the
 > [Disclaimer](DISCLAIMER.md) before use.
 
-[![build](https://github.com/mildcrime/VARSYS/actions/workflows/ci.yml/badge.svg)](https://github.com/mildcrime/VARSYS/actions/workflows/ci.yml)
+[![build](https://github.com/sudo-xerxes/VPP/actions/workflows/ci.yml/badge.svg)](https://github.com/sudo-xerxes/VPP/actions/workflows/ci.yml)
 ![platform](https://img.shields.io/badge/platform-ESP32--S3-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
@@ -48,7 +48,7 @@ WS2812 RGB ×8, NS4168 speaker, BQ27220 fuel gauge.
 
 ## Flash from your browser (no install)
 
-Open **<https://mildcrime.github.io/VARSYS/flasher/>** in **Chrome or Edge**,
+Open **<https://sudo-xerxes.github.io/VPP/flasher/>** in **Chrome or Edge**,
 connect the device via USB, click **Install**. Works on Windows / macOS / Linux.
 Or double‑click a shortcut from [`flasher/`](flasher/). Details:
 [flasher/README.md](flasher/README.md).

@@ -8,7 +8,7 @@
 > ⚠️ Только для **авторизованного тестирования и обучения**. Перед использованием
 > прочитайте [правовую оговорку](DISCLAIMER.md).
 
-[![build](https://github.com/mildcrime/VARSYS/actions/workflows/ci.yml/badge.svg)](https://github.com/mildcrime/VARSYS/actions/workflows/ci.yml)
+[![build](https://github.com/sudo-xerxes/VPP/actions/workflows/ci.yml/badge.svg)](https://github.com/sudo-xerxes/VPP/actions/workflows/ci.yml)
 ![platform](https://img.shields.io/badge/platform-ESP32--S3-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
@@ -48,7 +48,7 @@ RGB WS2812 ×8, динамик NS4168, топливомер BQ27220.
 
 ## Прошивка прямо из браузера (без установки)
 
-Откройте **<https://mildcrime.github.io/VARSYS/flasher/>** в **Chrome или Edge**,
+Откройте **<https://sudo-xerxes.github.io/VPP/flasher/>** в **Chrome или Edge**,
 подключите устройство по USB, нажмите **Install**. Работает на Windows / macOS /
 Linux. Или двойной клик по ярлыку из [`flasher/`](flasher/). Подробности:
 [flasher/README.md](flasher/README.md).

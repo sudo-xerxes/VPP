@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Link
+Name=VARSYS Flasher
+Comment=Flash VARSYS to T-Embed CC1101 via browser
+URL=https://sudo-xerxes.github.io/VPP/flasher/
+Icon=text-html
