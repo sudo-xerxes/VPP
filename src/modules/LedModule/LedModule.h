@@ -12,6 +12,7 @@ class LedModule : public IModule {
 public:
     const char* name() const override { return "Led"; }
     bool init() override;
+    void update(uint32_t now) override;
 
     static LedModule& instance() { return *_self; }
 
@@ -29,4 +30,5 @@ private:
     static LedModule* _self;
     void render();                 // вывести ambient (или чёрный, если выкл)
     uint8_t _ar = 0, _ag = 0, _ab = 0;   // текущий ambient-цвет
+    uint32_t _lastFrame = 0;
 };

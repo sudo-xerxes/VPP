@@ -38,4 +38,6 @@ private:
     bool     _backStable   = false;
     bool     _backLastRaw  = false;
     uint32_t _backChangeAt = 0;
+    uint32_t _backPressAt  = 0;
+    bool     _backLongFired = false;
 };

@@ -16,6 +16,7 @@ lv_obj_t* SettingsScreen::makeRow(lv_obj_t* parent, const char* sym,
     lv_obj_set_size(row, lv_pct(100), 29);
     lv_obj_set_style_radius(row, 8, 0);
     lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_style_min_height(row, 29, 0);
     if (sep) {
         lv_obj_set_style_border_side(row, LV_BORDER_SIDE_BOTTOM, 0);
         lv_obj_set_style_border_color(row, cSep(), 0);
@@ -88,6 +89,19 @@ static void fmtTimeout(char* buf, size_t n, uint16_t sec) {
     else          snprintf(buf, n, "%us", sec);
 }
 
+static const char* bgName(uint8_t v) {
+    static const char* const names[] = {"Classic", "Ocean", "Violet", "Forest"};
+    return names[v % 4];
+}
+static const char* splashName(uint8_t v) {
+    static const char* const names[] = {"Classic", "Ocean", "Neon"};
+    return names[v % 3];
+}
+static const char* ledModeName(uint8_t v) {
+    static const char* const names[] = {"Tile", "Rainbow", "Pulse"};
+    return names[v % 3];
+}
+
 void SettingsScreen::onCreate(lv_obj_t* parent) {
     _root = parent;
     _count = 0;
@@ -101,6 +115,7 @@ void SettingsScreen::onCreate(lv_obj_t* parent) {
     lv_obj_set_size(left, 142, 122);
     lv_obj_align(left, LV_ALIGN_BOTTOM_LEFT, 10, -8);
     lv_obj_set_flex_flow(left, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_row(left, 0, 0);
     lv_obj_add_flag(left, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_scroll_dir(left, LV_DIR_VER);
     lv_obj_set_scrollbar_mode(left, LV_SCROLLBAR_MODE_OFF);
@@ -117,6 +132,7 @@ void SettingsScreen::onCreate(lv_obj_t* parent) {
     lv_obj_set_size(right, 148, 122);
     lv_obj_align(right, LV_ALIGN_BOTTOM_RIGHT, -10, -8);
     lv_obj_set_flex_flow(right, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_row(right, 0, 0);
     lv_obj_add_flag(right, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_scroll_dir(right, LV_DIR_VER);
     lv_obj_set_scrollbar_mode(right, LV_SCROLLBAR_MODE_OFF);
@@ -134,6 +150,12 @@ void SettingsScreen::onCreate(lv_obj_t* parent) {
             true, ACT_LANG);
     makeRow(right, ICON_BATTERY, cGreen(), tr(STR_BATTERY), false, false, "›",
             true, ACT_BATTERY);
+    makeRow(right, ICON_BRIGHTNESS, cBlue(), "Background", false, false,
+            bgName(s.backgroundStyle()), true, ACT_BACKGROUND);
+    makeRow(right, ICON_RECORD, cOrange(), "Splash", false, false,
+            splashName(s.splashStyle()), true, ACT_SPLASH);
+    makeRow(right, ICON_SIGNAL, cGreen(), "LED effect", false, false,
+            ledModeName(s.ledMode()), true, ACT_LEDMODE);
     makeRow(right, ICON_INFO, cGray(), tr(STR_ABOUT), false, false, "v" VARSYS_VERSION,
             false, ACT_NONE);
 }
@@ -200,6 +222,17 @@ void SettingsScreen::activateSelected() {
             }
             return;
         }
+        case ACT_BACKGROUND:
+            s.cycleBackgroundStyle();
+            return; // UI_REBUILD пересоздаст строку с новым значением
+        case ACT_SPLASH:
+            s.cycleSplashStyle();
+            if (r.val) lv_label_set_text(r.val, splashName(s.splashStyle()));
+            return;
+        case ACT_LEDMODE:
+            s.cycleLedMode();
+            if (r.val) lv_label_set_text(r.val, ledModeName(s.ledMode()));
+            return;
         case ACT_BATTERY:
             UIManager::instance().pushScreen("Battery");
             return;

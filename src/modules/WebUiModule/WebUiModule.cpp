@@ -48,7 +48,7 @@ void WebUiModule::activate() {
     uint8_t mac[6];
     WiFi.macAddress(mac);
     char ssid[24];
-    snprintf(ssid, sizeof(ssid), "VARSYS-%02X%02X", mac[4], mac[5]);
+    snprintf(ssid, sizeof(ssid), "VPP-%02X%02X", mac[4], mac[5]);
     _ssid = ssid;
 
     WiFi.mode(WIFI_AP);
@@ -108,8 +108,8 @@ void WebUiModule::handleRoot() {
                  "<style>body{font-family:-apple-system,sans-serif;background:#f2f2f7;margin:0;padding:16px;color:#1c1c1e}"
                  "h1{font-size:22px}.c{background:#fff;border-radius:12px;padding:12px 16px;margin:10px 0}"
                  "a{color:#007aff;text-decoration:none}</style>");
-    h += "<h1>VARSYS</h1>";
-    h += "<div class=c>Firmware: v" VARSYS_VERSION "</div>";
+    h += "<h1>V++</h1>";
+    h += "<div class=c>V++ firmware: v" VARSYS_VERSION "</div>";
     h += "<div class=c>Battery: " + String(PowerModule::instance().batteryPercent()) + "%</div>";
     h += "<div class=c>Sub-GHz: " + String(RadioModule::instance().freqKhz() / 1000.0, 2) + " MHz</div>";
     h += "<div class=c><a href='/signals'>Signal library &rsaquo;</a></div>";

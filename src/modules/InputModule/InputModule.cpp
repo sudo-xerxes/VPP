@@ -119,10 +119,21 @@ void InputModule::pollBack(uint32_t now) {
         return;
     }
     if ((now - _backChangeAt) < VARSYS_BTN_DEBOUNCE_MS) return;
-    if (raw == _backStable) return;
+    if (raw == _backStable) {
+        if (_backStable && !_backLongFired &&
+            now - _backPressAt >= VARSYS_BACK_POWER_MS) {
+            _backLongFired = true;
+            EventBus::publish(EventType::INPUT_BACK_LONG);
+        }
+        return;
+    }
 
     _backStable = raw;
-    if (raw) EventBus::publish(EventType::INPUT_BACK);
+    if (raw) {
+        _backPressAt = now;
+        _backLongFired = false;
+        EventBus::publish(EventType::INPUT_BACK);
+    }
 }
 
 void InputModule::update(uint32_t now) {

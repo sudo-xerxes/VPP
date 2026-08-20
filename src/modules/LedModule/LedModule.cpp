@@ -61,6 +61,21 @@ void LedModule::applySettings() {
     render();   // включит/погасит и применит яркость к ambient-цвету
 }
 
+void LedModule::update(uint32_t now) {
+    const uint8_t mode = Settings::instance().ledMode();
+    if (mode == 0 || now - _lastFrame < 40) return; // не больше 25 FPS
+    _lastFrame = now;
+    if (!Settings::instance().ledOn()) return;
+    if (mode == 1) {
+        const uint8_t hue = now / 18;
+        for (int i = 0; i < NEOPIXEL_COUNT; ++i) s_leds[i] = CHSV(hue + i * 32, 255, 255);
+    } else {
+        const uint8_t v = beatsin8(18, 18, 255);
+        for (int i = 0; i < NEOPIXEL_COUNT; ++i) s_leds[i] = CRGB(_ar, _ag, _ab).nscale8(v);
+    }
+    FastLED.show();
+}
+
 void LedModule::flash(uint8_t r, uint8_t g, uint8_t b, uint32_t ms) {
     if (!Settings::instance().ledOn()) return;   // не мигаем, если LED выключены
     fill(r, g, b);

@@ -245,6 +245,8 @@ void UIManager::retranslateAll() {
 }
 
 void UIManager::update(uint32_t now) {
+    // LVGL не требует обслуживания каждые 5 мс: 10 мс сохраняют отзывчивость
+    // энкодера, но освобождают заметную долю CPU для радио и файловой системы.
     if (now - _lastLvTick >= VARSYS_LVGL_TICK_MS) {
         _lastLvTick = now;
         lv_timer_handler();

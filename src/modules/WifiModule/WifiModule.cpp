@@ -49,17 +49,38 @@ bool WifiModule::init() {
 void WifiModule::radioOff() {
     stopDeauth();
     stopSniffer();
+    if (_scanActive) WiFi.scanDelete();
+    _scanActive = false;
     WiFi.mode(WIFI_OFF);
 }
 
 int WifiModule::scan() {
+    // Экран WiFi пока использует синхронный вариант, чтобы не менять его UX.
+    // Wardrive вызывает beginScan/finishScan и не останавливает интерфейс.
     stopSniffer();
     stopDeauth();
     WiFi.mode(WIFI_STA);
     WiFi.disconnect();
     delay(50);
+    int n = WiFi.scanNetworks(false, true);
+    if (n >= 0) collectScan(n);
+    WiFi.scanDelete();
+    _scanActive = false;
+    return (int)_aps.size();
+}
 
-    int n = WiFi.scanNetworks(false, true);   // sync, show hidden
+void WifiModule::beginScan() {
+    if (_scanActive) return;
+    stopSniffer();
+    stopDeauth();
+    WiFi.mode(WIFI_STA);
+    WiFi.disconnect();
+    // Асинхронный драйвер сканирует сам; UI и GPS продолжают обслуживаться.
+    WiFi.scanNetworks(true, true);
+    _scanActive = true;
+}
+
+void WifiModule::collectScan(int n) {
     _aps.clear();
     for (int i = 0; i < n; ++i) {
         ApInfo a;
@@ -72,9 +93,18 @@ int WifiModule::scan() {
         if (a.ssid.isEmpty()) a.ssid = "<hidden>";
         _aps.push_back(a);
     }
-    WiFi.scanDelete();
     LOGI(TAG, "scan: %d APs", (int)_aps.size());
-    return (int)_aps.size();
+}
+
+bool WifiModule::finishScan() {
+    if (!_scanActive) return true;
+    int n = WiFi.scanComplete();
+    if (n == WIFI_SCAN_RUNNING) return false;
+    if (n >= 0) collectScan(n);
+    else _aps.clear();
+    WiFi.scanDelete();
+    _scanActive = false;
+    return true;
 }
 
 void WifiModule::startDeauth(int apIndex) {

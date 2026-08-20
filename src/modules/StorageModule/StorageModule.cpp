@@ -17,10 +17,22 @@ bool StorageModule::init() {
     bool lfs = LittleFS.begin(true);   // format on first run
     if (!lfs) LOGW(TAG, "LittleFS mount failed");
 
-    // SD на общей шине дисплея (как в Bruce), CS 13.
+    // Все устройства находятся на одной SPI-шине. До инициализации SD их CS
+    // обязаны быть неактивны, иначе карта не отвечает и прошивка ошибочно
+    // переходит на LittleFS.
+    pinMode(PIN_SD_CS, OUTPUT);       digitalWrite(PIN_SD_CS, HIGH);
+    pinMode(PIN_CC1101_CS, OUTPUT);   digitalWrite(PIN_CC1101_CS, HIGH);
+    pinMode(PIN_LCD_CS, OUTPUT);      digitalWrite(PIN_LCD_CS, HIGH);
     {
         hal::SpiBusGuard guard;
-        _sd = SD.begin(PIN_SD_CS, UIManager::instance().display().spi(), 20000000);
+        SPIClass& spi = UIManager::instance().display().spi();
+        // Карты и переходники заметно различаются по качеству. Повторяем
+        // монтирование на более щадящих частотах вместо молчаливого fallback.
+        const uint32_t speeds[] = {20000000, 10000000, 4000000};
+        for (uint32_t speed : speeds) {
+            SD.end();
+            if (SD.begin(PIN_SD_CS, spi, speed)) { _sd = true; break; }
+        }
     }
 
     if (_sd)       { _fs = &SD;       LOGI(TAG, "SD mounted"); }
@@ -29,6 +41,39 @@ bool StorageModule::init() {
 
     if (_fs) ensureDir(SIG_DIR);
     return true;   // не фатально, если ФС нет
+}
+
+static void collectFiles(fs::FS* fs, const String& dir, uint8_t depth,
+                         size_t limit, std::vector<String>& out) {
+    if (!fs || !depth || out.size() >= limit) return;
+    File d = fs->open(dir);
+    if (!d || !d.isDirectory()) { if (d) d.close(); return; }
+    for (File e = d.openNextFile(); e && out.size() < limit; e = d.openNextFile()) {
+        String path = e.name();
+        bool isDir = e.isDirectory();
+        e.close();
+        if (isDir) collectFiles(fs, path, depth - 1, limit, out);
+        else       out.push_back(path);
+    }
+    d.close();
+}
+
+std::vector<String> StorageModule::listFiles(uint8_t maxDepth, size_t limit) {
+    std::vector<String> out;
+    if (!_fs) return out;
+    hal::SpiBusGuard guard;
+    collectFiles(_fs, "/", maxDepth, limit, out);
+    return out;
+}
+
+size_t StorageModule::fileSize(const String& path) {
+    if (!_fs) return 0;
+    hal::SpiBusGuard guard;
+    File f = _fs->open(path, FILE_READ);
+    if (!f) return 0;
+    size_t result = f.size();
+    f.close();
+    return result;
 }
 
 void StorageModule::ensureDir(const char* path) {

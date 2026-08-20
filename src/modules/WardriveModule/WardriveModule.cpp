@@ -22,11 +22,13 @@ void WardriveModule::activate() {
     _path = PATH;
     _seen.clear();
     _apCount = 0;
+    _scanPending = false;
+    _nextScanAt = 0;
 
     StorageModule& st = StorageModule::instance();
     // Заголовок пишем только в новый файл (совместимо с WiGLE CSV).
     if (!st.exists(_path)) {
-        st.appendLine(_path, "WigleWifi-1.4,appRelease=VARSYS");
+        st.appendLine(_path, "WigleWifi-1.4,appRelease=V++");
         st.appendLine(_path, "MAC,SSID,AuthMode,FirstSeen,Channel,RSSI,"
                              "CurrentLatitude,CurrentLongitude,AltitudeMeters,"
                              "AccuracyMeters,Type");
@@ -34,7 +36,7 @@ void WardriveModule::activate() {
 
     _active = true;
     if (_task) Scheduler::instance().cancel(_task);
-    _task = Scheduler::instance().every(4000, [this] { tick(); });
+    _task = Scheduler::instance().every(250, [this] { tick(); });
     tick();   // первый проход сразу
     LOGI(TAG, "wardrive started -> %s", _path.c_str());
 }
@@ -50,12 +52,23 @@ void WardriveModule::deactivate() {
 
 void WardriveModule::tick() {
     if (!_active) return;
+    WifiModule& wifi = WifiModule::instance();
+    if (_scanPending) {
+        if (!wifi.finishScan()) return;
+        _scanPending = false;
+        saveCurrentScan();
+        _nextScanAt = millis() + 4000;
+        return;
+    }
+    if ((int32_t)(millis() - _nextScanAt) < 0) return;
+    wifi.beginScan();
+    _scanPending = true;
+}
 
+void WardriveModule::saveCurrentScan() {
     WifiModule& wifi = WifiModule::instance();
     GpsModule&  gps  = GpsModule::instance();
     StorageModule& st = StorageModule::instance();
-
-    wifi.scan();   // блокирующий (~2 с)
 
     const bool fix = gps.hasFix();
     const double lat = fix ? gps.lat() : 0.0;

@@ -7,11 +7,11 @@
 #define VARSYS_VERSION "0.0.0-dev"
 #endif
 
-#define VARSYS_NAME             "VARSYS"
+#define VARSYS_NAME             "V++"
 
 // --- Тайминги планировщика ---
 #define VARSYS_TICK_MS          5       // Период вызова Core::update() (мс)
-#define VARSYS_LVGL_TICK_MS     5       // Период lv_timer_handler()
+#define VARSYS_LVGL_TICK_MS     10      // 100 FPS ceiling; меньше нагрузки без потери плавности
 
 // --- Логирование ---
 #define VARSYS_LOG_ENABLED      1
@@ -30,9 +30,11 @@
 #define VARSYS_CPU_MHZ_NORMAL   240     // Рабочая частота CPU
 #define VARSYS_CPU_MHZ_IDLE     80      // Частота CPU при погашенном экране (мин. для радио)
 #define VARSYS_AUTO_LIGHT_SLEEP 1       // Авто light sleep при погашенном экране (0 = только гашение)
+#define VARSYS_WDT_TIMEOUT_S    15      // Перезапуск, если главный цикл завис
 
 // --- Ввод (энкодер + кнопка) ---
 #define VARSYS_ENCODER_REVERSED 0       // 1 — инвертировать направление вращения
 #define VARSYS_BTN_ACTIVE_LOW   1       // Кнопка энкодера: нажата = LOW (с подтяжкой)
 #define VARSYS_BTN_DEBOUNCE_MS  25      // Антидребезг кнопки (мс)
 #define VARSYS_BTN_LONGPRESS_MS 600     // Порог долгого нажатия (мс)
+#define VARSYS_BACK_POWER_MS    2500    // Удержание боковой кнопки для выключения

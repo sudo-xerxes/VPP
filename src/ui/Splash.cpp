@@ -2,6 +2,8 @@
 #include "ui/UITheme.h"
 #include "ui/fonts/varsys_fonts.h"
 #include "core/Scheduler.h"
+#include "core/Settings.h"
+#include "varsys_config.h"
 
 using namespace ui;
 
@@ -28,7 +30,7 @@ void create() {
     lv_obj_add_flag(s_root, LV_OBJ_FLAG_HIDDEN);
 
     s_word = lv_label_create(s_root);
-    lv_label_set_text(s_word, "VARSYS");
+    lv_label_set_text(s_word, VARSYS_NAME);
     lv_obj_set_style_text_color(s_word, lv_color_white(), 0);
     lv_obj_set_style_text_font(s_word, &varsys_22, 0);
     lv_obj_align(s_word, LV_ALIGN_CENTER, 0, -10);
@@ -49,6 +51,11 @@ void play(uint32_t ms) {
     lv_obj_clear_flag(s_root, LV_OBJ_FLAG_HIDDEN);
     lv_obj_move_foreground(s_root);
     lv_obj_set_style_opa(s_root, LV_OPA_COVER, 0);
+    const uint8_t style = Settings::instance().splashStyle();
+    static const uint32_t bg[] = {0x000000, 0x071525, 0x16081E};
+    static const uint32_t accent[] = {0x0A84FF, 0x64D2FF, 0xBF5AF2};
+    lv_obj_set_style_bg_color(s_root, lv_color_hex(bg[style]), 0);
+    lv_obj_set_style_bg_color(s_line, lv_color_hex(accent[style]), 0);
 
     // Сброс начального состояния слова/линии.
     lv_obj_set_style_opa(s_word, LV_OPA_TRANSP, 0);

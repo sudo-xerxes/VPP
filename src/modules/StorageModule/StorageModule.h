@@ -43,6 +43,10 @@ public:
     bool exists(const String& path);
     // Список имён файлов в каталоге (опц. фильтр по расширению, напр. ".txt").
     std::vector<String> listDir(const String& dir, const char* ext = nullptr);
+    // Все файлы, видимые пользователю на активном носителе. Пути возвращаются
+    // относительно корня; глубина ограничена, чтобы карточка Files не съела RAM.
+    std::vector<String> listFiles(uint8_t maxDepth = 3, size_t limit = 64);
+    size_t fileSize(const String& path);
 
     // --- Библиотека сигналов ---
     bool saveSignal(const SignalRecord& rec);

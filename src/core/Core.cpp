@@ -6,6 +6,7 @@
 #include "Clock.h"
 #include "hal/SpiBus.h"
 #include "varsys_config.h"
+#include <esp_task_wdt.h>
 
 // --- Подключаемые модули системы ---
 #include "modules/InputModule/InputModule.h"
@@ -91,6 +92,11 @@ void Core::begin() {
     Logger::begin();
     Logger::setLevel(LogLevel::DEBUG);
 
+    // Отдельный watchdog ловит настоящие зависания, когда обработчик долгого
+    // нажатия уже не может выполниться. Ошибка и reboot видны в serial-логе.
+    esp_task_wdt_init(VARSYS_WDT_TIMEOUT_S, true);
+    esp_task_wdt_add(NULL);
+
     LOGI(TAG, "==============================================");
     LOGI(TAG, " %s firmware v%s", VARSYS_NAME, VARSYS_VERSION);
     LOGI(TAG, " Target: T-Embed CC1101 Plus S3 (ESP32-S3)");
@@ -118,6 +124,7 @@ void Core::begin() {
 }
 
 void Core::loop() {
+    esp_task_wdt_reset();
     const uint32_t now = millis();
     if (now - _lastTick >= VARSYS_TICK_MS) {
         _lastTick = now;

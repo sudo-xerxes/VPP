@@ -23,6 +23,7 @@ enum class EventType : uint16_t {
     INPUT_BTN_CLICK,        // Короткое нажатие энкодера
     INPUT_BTN_LONG,         // Долгое нажатие энкодера
     INPUT_BACK,             // Кнопка «назад» (боковая)
+    INPUT_BACK_LONG,        // Удержание боковой кнопки: выключение устройства
 
     // --- Навигация UI ---
     UI_SCREEN_CHANGED,

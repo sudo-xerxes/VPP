@@ -21,6 +21,9 @@ static const char* K_KBLAY  = "kb_layout";
 static const char* K_LEDON  = "led_on";
 static const char* K_LEDBR  = "led_br";
 static const char* K_WEBPW  = "web_pw";
+static const char* K_BG     = "background";
+static const char* K_SPLASH = "splash";
+static const char* K_LEDMOD = "led_mode";
 
 Settings& Settings::instance() {
     static Settings s;
@@ -42,6 +45,9 @@ void Settings::begin() {
     _kbLayout   = _prefs.getUChar(K_KBLAY, 0);   // 0 = US
     _ledOn      = _prefs.getBool(K_LEDON, true);
     _ledBright  = _prefs.getUChar(K_LEDBR, 80);
+    _background = _prefs.getUChar(K_BG, 0) % 4;
+    _splash     = _prefs.getUChar(K_SPLASH, 0) % 3;
+    _ledMode    = _prefs.getUChar(K_LEDMOD, 0) % 3;
     _webPass    = _prefs.getString(K_WEBPW, "");
 
     LOGI(TAG, "Loaded: bright=%u rot=%u lang=%s sound=%d freq=%lukHz",
@@ -160,5 +166,23 @@ void Settings::setLedBrightness(uint8_t v) {
     if (v == _ledBright) return;
     _ledBright = v;
     _prefs.putUChar(K_LEDBR, v);
+    EventBus::publish(EventType::SETTINGS_CHANGED);
+}
+
+void Settings::cycleBackgroundStyle() {
+    _background = (_background + 1) % 4;
+    _prefs.putUChar(K_BG, _background);
+    EventBus::publishDeferred(EventType::UI_REBUILD);
+}
+
+void Settings::cycleSplashStyle() {
+    _splash = (_splash + 1) % 3;
+    _prefs.putUChar(K_SPLASH, _splash);
+    EventBus::publish(EventType::SETTINGS_CHANGED);
+}
+
+void Settings::cycleLedMode() {
+    _ledMode = (_ledMode + 1) % 3;
+    _prefs.putUChar(K_LEDMOD, _ledMode);
     EventBus::publish(EventType::SETTINGS_CHANGED);
 }

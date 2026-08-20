@@ -1,8 +1,8 @@
-# VARSYS
+# V++
 
 **English** · [Русский](README.ru.md)
 
-Modular security‑research firmware for the **LILYGO T‑Embed CC1101 Plus (ESP32‑S3)** —
+**V++** is modular security‑research firmware for the **LILYGO T‑Embed CC1101 Plus (ESP32‑S3)** —
 a Flipper‑class multitool with a clean, phone‑like UI.
 
 > ⚠️ For **authorized testing and education only**. Read the

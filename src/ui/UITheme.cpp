@@ -1,5 +1,6 @@
 #include "UITheme.h"
 #include "ui/i18n.h"
+#include "core/Settings.h"
 
 namespace ui {
 
@@ -7,7 +8,12 @@ bool darkMode = false;
 
 void styleScreen(lv_obj_t* root) {
     lv_obj_remove_style_all(root);
-    lv_obj_set_style_bg_color(root, cBg(), 0);
+    // Четыре лёгких «обоев»: цвет вместо bitmap экономит PSRAM и DMA, но
+    // меняет характер всего интерфейса без потери читаемости карточек.
+    static const uint32_t darkBg[]  = {0x000000, 0x071525, 0x16081E, 0x102015};
+    static const uint32_t lightBg[] = {0xF2F2F7, 0xEAF4FF, 0xFAEDF8, 0xEDF7EF};
+    uint8_t style = Settings::instance().backgroundStyle();
+    lv_obj_set_style_bg_color(root, lv_color_hex(darkMode ? darkBg[style] : lightBg[style]), 0);
     lv_obj_set_style_bg_opa(root, LV_OPA_COVER, 0);
     lv_obj_clear_flag(root, LV_OBJ_FLAG_SCROLLABLE);
 }

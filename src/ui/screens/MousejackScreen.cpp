@@ -89,7 +89,7 @@ void MousejackScreen::activateSelected() {
     if (_selected < 0 || _selected >= n.mjCount()) return;
     // Демо-инъекция безобидной строки в выбранное (своё) устройство.
     Notify::toast(tr(STR_RUN), Notify::Warn);
-    int sent = n.mjInject(n.mjDevice(_selected), "VARSYS mousejack test\n");
+    int sent = n.mjInject(n.mjDevice(_selected), "V++ mousejack test\n");
     lv_label_set_text_fmt(_status, "sent %d", sent);
     Notify::toast(sent > 0 ? tr(STR_SENT) : tr(STR_NO_TAG),
                   sent > 0 ? Notify::Success : Notify::Warn);

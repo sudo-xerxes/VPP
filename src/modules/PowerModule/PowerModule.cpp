@@ -75,6 +75,11 @@ bool PowerModule::init() {
     EventBus::subscribe(EventType::INPUT_BTN_CLICK,   activity);
     EventBus::subscribe(EventType::INPUT_BTN_LONG,    activity);
     EventBus::subscribe(EventType::INPUT_BACK,        activity);
+    EventBus::subscribe(EventType::INPUT_BACK_LONG, [](const Event&) {
+        // Долгое удержание боковой кнопки — аппаратно понятный путь выключить
+        // устройство из любого экрана, как в Bruce. Работает, пока loop жив.
+        PowerModule::instance().powerOff();
+    });
 
     // Периодический опрос батареи.
     Scheduler::instance().every(VARSYS_BATTERY_POLL_MS, [] {
@@ -160,9 +165,28 @@ void PowerModule::update(uint32_t now) {
 }
 
 void PowerModule::powerOff() {
-    LOGI(TAG, "Powering off");
-    delay(50);
-    digitalWrite(PIN_POWER_ON, LOW);   // отпускаем линию питания
+    // GPIO15 отключает только коммутируемый домен VCC3V3 (экран, CC1101,
+    // светодиоды), но не останавливает сам ESP32. Поэтому одного LOW было
+    // недостаточно: лог сообщал «Powering off», а процессор продолжал работать.
+    // Повторяем корректную последовательность T-Embed: погасить периферию и
+    // перейти в deep sleep с пробуждением боковой кнопкой.
+    LOGI(TAG, "Power off -> deep sleep (wake: BACK)");
+    UIManager::instance().display().setBrightness(0);
+    LedModule::instance().off();
+    RadioModule::instance().sleep();
+    WiFi.mode(WIFI_OFF);
+
+    // Удерживающая кнопка не должна тут же разбудить процессор.
+    while (digitalRead(PIN_BTN_BACK) == LOW) delay(10);
+    delay(80);
+
+    digitalWrite(PIN_POWER_ON, LOW);
+    gpio_hold_en((gpio_num_t)PIN_POWER_ON);       // сохраняем LOW во сне
+    gpio_deep_sleep_hold_en();
+    rtc_gpio_pullup_en((gpio_num_t)PIN_BTN_BACK);
+    rtc_gpio_pulldown_dis((gpio_num_t)PIN_BTN_BACK);
+    esp_sleep_enable_ext1_wakeup(1ULL << PIN_BTN_BACK, ESP_EXT1_WAKEUP_ANY_LOW);
+    esp_deep_sleep_start();
 }
 
 void PowerModule::lightSleep() {

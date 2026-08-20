@@ -2,11 +2,8 @@
 #include "ui/UITheme.h"
 #include "ui/i18n.h"
 #include "modules/StorageModule/StorageModule.h"
-#include <FS.h>
 
 using namespace ui;
-
-static const char* DIRS[] = { "/signals", "/brute", "/nfc", "/ibutton", "/ducky" };
 
 void FilesScreen::onCreate(lv_obj_t* parent) {
     _root = parent;
@@ -33,17 +30,9 @@ void FilesScreen::rebuild() {
     _rows.clear();
     _count = 0;
 
-    fs::FS* fs = StorageModule::instance().fs();
-    if (fs) {
-        for (const char* d : DIRS) {
-            File dir = fs->open(d);
-            if (!dir || !dir.isDirectory()) { if (dir) dir.close(); continue; }
-            for (File e = dir.openNextFile(); e; e = dir.openNextFile()) {
-                String n = e.name();
-                int slash = n.lastIndexOf('/');
-                if (slash >= 0) n = n.substring(slash + 1);
-                size_t sz = e.size();
-                e.close();
+    StorageModule& storage = StorageModule::instance();
+    for (const String& path : storage.listFiles()) {
+                size_t sz = storage.fileSize(path);
 
                 lv_obj_t* row = lv_obj_create(_list);
                 lv_obj_remove_style_all(row);
@@ -61,7 +50,7 @@ void FilesScreen::rebuild() {
                 lv_obj_align(ic, LV_ALIGN_LEFT_MID, 8, 0);
 
                 lv_obj_t* lb = lv_label_create(row);
-                lv_label_set_text_fmt(lb, "%s/%s", d + 1, n.c_str());
+                lv_label_set_text_fmt(lb, "%s", path.c_str());
                 lv_obj_set_style_text_color(lb, cText(), 0);
                 lv_obj_set_style_text_font(lb, &varsys_12, 0);
                 lv_label_set_long_mode(lb, LV_LABEL_LONG_DOT);
@@ -76,9 +65,6 @@ void FilesScreen::rebuild() {
 
                 _rows.push_back(row);
                 _count++;
-            }
-            dir.close();
-        }
     }
 
     bool empty = (_count == 0);

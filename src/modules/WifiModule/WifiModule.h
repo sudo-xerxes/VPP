@@ -27,6 +27,8 @@ public:
     static WifiModule& instance() { return *_self; }
 
     int scan();                              // блокирующий, заполняет _aps
+    void beginScan();                        // неблокирующий запуск для фоновых задач
+    bool finishScan();                       // true, когда результат готов
     const std::vector<ApInfo>& aps() const { return _aps; }
 
     void radioOff();                         // выключить радио (экономия)
@@ -53,4 +55,6 @@ private:
     uint32_t _lastTx       = 0;
 
     bool     _sniffActive  = false;
+    bool     _scanActive   = false;
+    void collectScan(int n);
 };

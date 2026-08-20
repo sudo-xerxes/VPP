@@ -63,6 +63,15 @@ public:
     uint8_t  ledBrightness() const { return _ledBright; }
     void     setLedBrightness(uint8_t v);
 
+    // Оформление. Это встроенные пресеты, поэтому смена не требует загрузки
+    // тяжёлых картинок и не ухудшает отзывчивость ESP32-S3.
+    uint8_t backgroundStyle() const { return _background; } // 0..3
+    void    cycleBackgroundStyle();
+    uint8_t splashStyle() const { return _splash; }         // 0..2
+    void    cycleSplashStyle();
+    uint8_t ledMode() const { return _ledMode; }            // 0 tile, 1 rainbow, 2 pulse
+    void    cycleLedMode();
+
     // Пароль веб-интерфейса (WPA2 точки доступа). Генерируется случайно при
     // первом обращении и хранится в NVS — вместо публичного хардкода (CWE-798).
     const String& webPassword();
@@ -88,5 +97,8 @@ private:
     uint8_t  _kbLayout;
     bool     _ledOn;
     uint8_t  _ledBright;
+    uint8_t  _background;
+    uint8_t  _splash;
+    uint8_t  _ledMode;
     String   _webPass;
 };

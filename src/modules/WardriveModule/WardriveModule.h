@@ -26,12 +26,15 @@ public:
     const String& path() const { return _path; }
 
 private:
-    void tick();                  // один проход скан+лог
+    void tick();                  // неблокирующий запуск/сбор WiFi-скана
+    void saveCurrentScan();
     static WardriveModule* _self;
 
     bool     _active  = false;
     uint32_t _task    = 0;
     uint32_t _apCount = 0;
+    uint32_t _nextScanAt = 0;
+    bool     _scanPending = false;
     String   _path;
     std::set<String> _seen;       // уже записанные BSSID
 };

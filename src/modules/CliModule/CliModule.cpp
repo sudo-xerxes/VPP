@@ -14,7 +14,7 @@ static const char* TAG = "Cli";
 
 bool CliModule::init() {
     Serial.println();
-    Serial.println("VARSYS CLI — type 'help'");
+    Serial.println("V++ CLI — type 'help'");
     return true;
 }
 
